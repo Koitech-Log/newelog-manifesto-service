@@ -35,8 +35,8 @@ public class ManifestoMapeadoDTO{
                                 }
 
                                 //getters e setters
-                                public String getManifestoId() { return manifestoId; }
-                                public void setManifestoId(String manifestoId) { this.manifestoId = manifestoId; }
+                                public String getmanifestoID() { return manifestoID; }
+                                public void setmanifestoID(String manifestoID) { this.manifestoID = manifestoID; }
 
                                 public String getdata() { return data; }
                                 public void setdata(String data) { this.data = data; }
