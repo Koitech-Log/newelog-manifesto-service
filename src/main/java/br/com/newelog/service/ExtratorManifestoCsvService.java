@@ -14,8 +14,8 @@ import java.util.List;
 
 @Service
 public class ExtratorManifestoCsvService{
-    public list extrairEMapear(InputStream csvInputStream) throws Exception{
-        List listaMapeada =  new ArayList<>();
+    public List extrairEMapear(InputStream csvInputStream) throws Exception{
+        List listaMapeada =  new ArrayList<>();
 
         try(var reader = new InputStreamReader(csvInputStream, StandardCharsets.ISO_8859_1);
             CSVReader csvReader = new CSVReaderBuilder(reader)
@@ -28,20 +28,20 @@ public class ExtratorManifestoCsvService{
                     continue;
                 }
 
-                ManifestoMapeadoDTO dto = new ManifestoDTO();
+                ManifestoMapeadoDTO dto = new ManifestoMapeadoDTO();
 
                 dto.setManifestoId(linha[0]);
                 dto.setdata(linha[2]);
                 dto.setnomeMotoristas(linha[3]);
                 dto.setcpfMotorista(limparDocumento(linha[4]));
-                dto.setNomeAgregado(linha[15]);
-                dto.setCpfCnpjAgregado(limparDocumento(linha[16]));
-                dto.setPlacaVeiculo(linha[19]);
-                dto.setStatus(linha[59]);
+                dto.setnomeAgregado(linha[15]);
+                dto.setcpfCnpjAgregado(limparDocumento(linha[16]));
+                dto.setplacaVeiculo(linha[19]);
+                dto.setstatus(linha[59]);
 
-                dto.setValorFrete(converterValor(linha[38]));
-                dto.setTotalDespesas(converterValor(linha[51]));
-                dto.setSaldoAPagar(converterValor(linha[56]));
+                dto.setvalorFrete(converterValor(linha[38]));
+                dto.settotalDespesas(converterValor(linha[51]));
+                dto.setsaldoAPagar(converterValor(linha[56]));
 
                 listaMapeada.add(dto);
             }
@@ -52,7 +52,7 @@ public class ExtratorManifestoCsvService{
 
     private String limparDocumento(String doc){
         if (doc == null) return null;
-        return doc.replaceALL("[^0-9]", "");
+        return doc.replaceAll("[^0-9]", "");
     }
 
     private Double converterValor(String valorStr){
