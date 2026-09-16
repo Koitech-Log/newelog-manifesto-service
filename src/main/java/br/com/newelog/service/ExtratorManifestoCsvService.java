@@ -30,7 +30,7 @@ public class ExtratorManifestoCsvService{
 
                 ManifestoMapeadoDTO dto = new ManifestoMapeadoDTO();
 
-                dto.setManifestoId(linha[0]);
+                dto.setmanifestoID(linha[0]);
                 dto.setdata(linha[2]);
                 dto.setnomeMotoristas(linha[3]);
                 dto.setcpfMotorista(limparDocumento(linha[4]));
