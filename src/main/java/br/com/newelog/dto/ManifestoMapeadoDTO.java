@@ -1,4 +1,4 @@
-package br.com.newelog.dto
+package br.com.newelog.dto;
 
 public class ManifestoMapeadoDTO{
     private String manifestoID;
