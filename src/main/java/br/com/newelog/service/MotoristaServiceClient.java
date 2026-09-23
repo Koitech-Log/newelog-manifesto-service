@@ -22,7 +22,7 @@ public class MotoristaServiceClient {
     }
 
     public boolean validar(ManifestoMapeadoDTO manifesto) {
-        String url = motoristasServiceUrl + "/motoristas/validar-manifesto";
+        String url = motoristasServiceUrl + "/api/motoristas/validar-manifesto";
 
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("manifestoID", manifesto.getmanifestoID());
