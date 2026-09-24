@@ -4,6 +4,7 @@ import br.com.newelog.dto.ManifestoUploadResponseDTO;
 import br.com.newelog.service.ManifestoUploadService;
 import br.com.newelog.validation.ManifestoUploadValidator;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/manifestos")
+@CrossOrigin(originPatterns = "http://localhost:*")
 public class ManifestoUploadController {
 
     private final ManifestoUploadValidator validator;
