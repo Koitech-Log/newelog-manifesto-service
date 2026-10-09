@@ -33,7 +33,6 @@ build/
 .vscode/
 
 .env
-.env.*
 application-local.yml
 application-local.properties
 *.iml
