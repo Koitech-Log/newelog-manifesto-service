@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -27,6 +28,17 @@ public class ApiExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleArquivoGrande(MaxUploadSizeExceededException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(corpoDeErro("Arquivo maior do que o permitido."));
+    }
+
+    /**
+     * Mantém o status escolhido por quem lançou a exceção (ex.: 401/403 vindos
+     * do motoristas-service no upload de veículos). Sem este handler, o
+     * handler de RuntimeException abaixo transformaria tudo em 500.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleStatus(ResponseStatusException ex) {
+        String mensagem = ex.getReason() != null ? ex.getReason() : "Erro ao processar a requisição.";
+        return ResponseEntity.status(ex.getStatusCode()).body(corpoDeErro(mensagem));
     }
 
     @ExceptionHandler(RuntimeException.class)
