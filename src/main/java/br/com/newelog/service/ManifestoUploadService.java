@@ -4,6 +4,10 @@ import br.com.newelog.dto.ManifestoMapeadoDTO;
 import br.com.newelog.dto.ManifestoUploadResponseDTO;
 import br.com.newelog.dto.MotoristaCadastradoDTO;
 import br.com.newelog.dto.MotoristaNovoDTO;
+import br.com.newelog.dto.ResultadoExtracaoDTO;
+import br.com.newelog.validation.ManifestoUploadException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,6 +16,8 @@ import java.util.List;
 
 @Service
 public class ManifestoUploadService {
+
+    private static final Logger log = LoggerFactory.getLogger(ManifestoUploadService.class);
 
     private final ExtratorManifestoCsvService extrator;
     private final MotoristaServiceClient motoristaServiceClient;
@@ -24,16 +30,20 @@ public class ManifestoUploadService {
 
     public ManifestoUploadResponseDTO processar(MultipartFile arquivo) {
         String nomeArquivo = arquivo.getOriginalFilename();
-        List<ManifestoMapeadoDTO> manifestos;
+        ResultadoExtracaoDTO extracao;
 
         try {
-            manifestos = extrator.extrairEMapear(arquivo.getInputStream());
+            extracao = extrator.extrairEMapear(arquivo.getInputStream());
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao ler o CSV: " + e.getMessage(), e);
+            log.error("Erro ao ler o CSV {}", nomeArquivo, e);
+            throw new ManifestoUploadException("Não foi possível ler o arquivo CSV.");
         }
 
+        List<ManifestoMapeadoDTO> manifestos = extracao.manifestos();
+        int totalLinhas = manifestos.size() + extracao.linhasIgnoradas();
         int cadastrados = 0;
-        int rejeitados = 0;
+        // Linhas malformadas descartadas na leitura também contam como rejeitadas
+        int rejeitados = extracao.linhasIgnoradas();
         List<MotoristaNovoDTO> novos = new ArrayList<>();
         // Evita listar o mesmo motorista várias vezes quando o manifesto tem
         // mais de uma linha (viagem) para ele — cadastroValidado continua
@@ -71,10 +81,10 @@ public class ManifestoUploadService {
 
         String mensagem = novos.isEmpty()
                 ? String.format("Processado: %d manifestos (%d cadastrados/atualizados, %d rejeitados)",
-                        manifestos.size(), cadastrados, rejeitados)
+                        totalLinhas, cadastrados, rejeitados)
                 : String.format("Processado: %d manifestos (%d cadastrados/atualizados, %d novos, %d rejeitados)",
-                        manifestos.size(), cadastrados, novos.size(), rejeitados);
+                        totalLinhas, cadastrados, novos.size(), rejeitados);
 
-        return new ManifestoUploadResponseDTO(mensagem, nomeArquivo, manifestos.size(), cadastrados, rejeitados, novos);
+        return new ManifestoUploadResponseDTO(mensagem, nomeArquivo, totalLinhas, cadastrados, rejeitados, novos);
     }
 }
