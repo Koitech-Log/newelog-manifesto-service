@@ -97,7 +97,7 @@ public class ExtratorVeiculoCsvService {
                             agregado,
                             documento));
                 } catch (IllegalArgumentException e) {
-                    erros.add(new ErroLinhaCsvDTO(numeroLinha, e.getMessage()));
+                    erros.add(new ErroLinhaCsvDTO(numeroLinha, null, e.getMessage()));
                 }
             }
         } catch (CsvValidationException e) {
