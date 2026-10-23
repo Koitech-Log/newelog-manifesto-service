@@ -49,8 +49,10 @@ export JWT_SECRET='<segredo compartilhado do auth-service>'
 
 No PowerShell:
 
-$env:JWT_SECRET = '<segredo compartilhado do auth-service>'
-./mvnw.cmd spring-boot:run
+Get-Content .env | Where-Object { $_ -match '^\s*[^#].*=' } | ForEach-Object {
+  $k, $v = $_ -split '=', 2; [Environment]::SetEnvironmentVariable($k.Trim(), $v.Trim())
+}
+.\mvnw.cmd spring-boot:run
 
 
 O segredo deve ser o mesmo segredo de assinatura usado pelo newelog-auth-service, com pelo menos 32 bytes conforme a configuração do projeto. Não use um JWT completo como segredo, a menos que esse seja realmente o segredo compartilhado configurado no serviço emissor.
