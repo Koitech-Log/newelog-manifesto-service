@@ -1,5 +1,7 @@
 package br.com.newelog.dto;
 
+import java.math.BigDecimal;
+
 public class ManifestoMapeadoDTO{
     private String manifestoID;
     private String data;
@@ -10,6 +12,10 @@ public class ManifestoMapeadoDTO{
     private String placaVeiculo;
     private String status;
     private Double valorFrete;
+    private BigDecimal valorPedagio;
+
+    public BigDecimal getvalorPedagio() { return valorPedagio; }
+    public void setvalorPedagio(BigDecimal valorPedagio) { this.valorPedagio = valorPedagio; }
     private Double totalDespesas;
     private Double saldoAPagar;
 

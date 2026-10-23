@@ -84,6 +84,7 @@ public class MotoristaServiceClient {
         corpo.put("placaVeiculo", manifesto.getplacaVeiculo());
         corpo.put("status", manifesto.getstatus());
         corpo.put("valorFrete", manifesto.getvalorFrete());
+        corpo.put("valorPedagio", manifesto.getvalorPedagio());
 
         try {
             return restTemplate.postForObject(url, corpo, MotoristaCadastradoDTO.class);
@@ -118,3 +119,4 @@ public class MotoristaServiceClient {
                 "O serviço de motoristas está indisponível. Tente novamente em instantes.");
     }
 }
+

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -78,10 +79,32 @@ public class ExtratorManifestoCsvService {
         dto.setstatus(linha[59]);
 
         dto.setvalorFrete(converterValor(linha[38]));
+        dto.setvalorPedagio(converterPedagio(linha[40]));
         dto.settotalDespesas(converterValor(linha[51]));
         dto.setsaldoAPagar(converterValor(linha[56]));
 
         return dto;
+    }
+
+    /**
+     * Ausente é diferente de zero: não permite apagar um custo conhecido.
+     * O CSV usa formato brasileiro; valores ilegíveis ou fora de NUMERIC(12,2)
+     * rejeitam somente a linha, pelo tratamento já existente em mapear().
+     */
+    private BigDecimal converterPedagio(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        String texto = valor.strip();
+        if (texto.length() > 64) {
+            throw new IllegalArgumentException("Pedágio excede o tamanho permitido");
+        }
+        if (!texto.matches("(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:,\\d{1,2})?")) {
+            throw new IllegalArgumentException("Pedágio em formato inválido");
+        }
+        BigDecimal pedagio = new BigDecimal(texto.replace(".", "").replace(",", "."));
+        if (pedagio.compareTo(new BigDecimal("9999999999.99")) > 0) {
+            throw new IllegalArgumentException("Pedágio excede o limite permitido");
+        }
+        return pedagio.setScale(2);
     }
 
     private boolean linhaEmBranco(String[] linha) {
@@ -110,3 +133,4 @@ public class ExtratorManifestoCsvService {
         return Double.parseDouble(valor.trim().replace(".", "").replace(",", "."));
     }
 }
+
