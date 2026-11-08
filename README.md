@@ -1,12 +1,23 @@
-NEWELOG | Serviço de manifestos
+# NEWELOG | manifesto-service
 
-Microserviço responsável por receber manifestos em CSV, extrair os registros e integrar a importação com o serviço de motoristas do NEWELOG.
+> Projeto Integrador 3º Semestre · DSM · FATEC São José dos Campos · Equipe **Koitech-Log** · Cliente **NEWE Logística Integrada**
+>
+> [Repositório principal](https://github.com/Koitech-Log/Koitech-Log-3DSM-Newelog) · [Documentação do projeto](https://github.com/Koitech-Log/Documentos) · [motoristas-service](https://github.com/Koitech-Log/newelog-motoristas-service) · [auth-service](https://github.com/Koitech-Log/newelog-auth-service) · [frontend](https://github.com/Koitech-Log/newelog-frota-web)
 
-Parte do Projeto Integrador do 3º semestre de DSM da FATEC São José dos Campos, desenvolvido pela Koitech-Log para a NEWE Logística Integrada.
+Microsserviço de **importação de arquivos CSV** do NEWELOG. Recebe o upload, valida e lê o arquivo, e envia os registros ao `motoristas-service`, que faz a persistência.
 
-Projeto principal · Serviço de motoristas · Frontend · Documentação
+| Sprint | Funcionalidade | Rota |
+| :--- | :--- | :--- |
+| 1 | Upload do manifesto: vincula as viagens aos motoristas e sinaliza motoristas com cadastro pendente (US02) | `POST /manifestos/upload` |
+| 2 | Upload de CSV de veículos com validação de estrutura e dados e resumo da importação (US09, US10, US11) | `POST /veiculos/upload` |
 
-Como funciona
+Este serviço **não tem banco de dados próprio**: cadastro, viagens e veículos ficam no `motoristas-service`.
+
+---
+
+## 🔄 Como funciona
+
+```mermaid
 sequenceDiagram
     participant W as Frontend
     participant I as Manifesto Service
@@ -23,108 +34,120 @@ sequenceDiagram
         end
     end
     I-->>W: Totais e cadastros pendentes
+```
 
+No upload de veículos, o arquivo inteiro é lido e enviado de uma vez para `POST /api/veiculos/cadastrar-de-csv` no `motoristas-service`.
 
-Este serviço não possui banco de dados próprio. O serviço de motoristas concentra o cadastro, as viagens e a persistência. O processamento é síncrono e percorre os registros sequencialmente.
+O processamento é síncrono. No manifesto, cada linha gera chamadas HTTP, então arquivos grandes podem demorar.
 
-Tecnologias
-Tecnologia	Versão / uso
-Java	JDK 21 (POM, CI e containers)
-Spring Boot	4.1.1
-Spring Web MVC	API de upload
-Spring Security	Resource server: valida o JWT do newelog-auth-service
-OpenCSV	5.9, leitura do arquivo
-RestTemplate	Integração HTTP com motoristas, com timeouts
-Spring Boot Actuator	Saúde da aplicação
-Maven Wrapper	Build e testes
-Executar localmente
+---
 
-Pré-requisitos: Git, JDK 21, o JWT_SECRET do newelog-auth-service e o serviço de motoristas disponível com seu banco configurado.
+## 🛠️ Tecnologias
 
+| Tecnologia | Versão / uso |
+| :--- | :--- |
+| Java | 21 |
+| Spring Boot | 3.5.16 |
+| Spring Web MVC | API de upload |
+| Spring Security | Resource server: valida o JWT do `newelog-auth-service` |
+| OpenCSV | 5.9, leitura dos arquivos |
+| RestTemplate | Integração HTTP com o `motoristas-service`, com timeouts |
+| Spring Boot Actuator | Saúde da aplicação |
+| Maven Wrapper | Build e testes |
+
+---
+
+## 🚀 Executar localmente
+
+Pré-requisitos: JDK 21, o `JWT_SECRET` do `newelog-auth-service` e o `motoristas-service` rodando com o banco configurado.
+
+```bash
 git clone https://github.com/Koitech-Log/newelog-manifesto-service.git
 cd newelog-manifesto-service
-export JWT_SECRET='<segredo compartilhado do auth-service>'
+cp .env.example .env            # preencha JWT_SECRET
+set -a; source .env; set +a     # o Spring não lê o .env sozinho
 ./mvnw spring-boot:run
-
+```
 
 No PowerShell:
 
+```powershell
 Get-Content .env | Where-Object { $_ -match '^\s*[^#].*=' } | ForEach-Object {
   $k, $v = $_ -split '=', 2; [Environment]::SetEnvironmentVariable($k.Trim(), $v.Trim())
 }
 .\mvnw.cmd spring-boot:run
+```
 
+A API sobe em `http://localhost:8081` e chama o `motoristas-service` em `http://localhost:8080`.
 
-O segredo deve ser o mesmo segredo de assinatura usado pelo newelog-auth-service, com pelo menos 32 bytes conforme a configuração do projeto. Não use um JWT completo como segredo, a menos que esse seja realmente o segredo compartilhado configurado no serviço emissor.
-
-Por padrão, a API inicia em http://localhost:8081 e se conecta ao serviço de motoristas em http://localhost:8080.
-
+```bash
 curl http://localhost:8081/actuator/health
+```
 
+O health check não garante que o `motoristas-service` está acessível; confira os dois.
 
-O health check da aplicação não comprova que uma importação conseguirá acessar o serviço de motoristas; confira também a disponibilidade dele.
+### Docker
 
-Variáveis de ambiente
-Variável	Padrão	Finalidade
-JWT_SECRET	— (obrigatória)	Mesmo segredo do newelog-auth-service, mínimo de 32 bytes
-PORT	8081	Porta HTTP
-MOTORISTAS_SERVICE_URL	http://localhost:8080	URL base do serviço de motoristas, sem /api/motoristas
-FRONTEND_URL	http://localhost:5173	Origem permitida pelo CORS
-MAX_UPLOAD_SIZE	5MB	Tamanho máximo do arquivo e da requisição multipart
-MOTORISTAS_CONNECT_TIMEOUT_MS	5000	Timeout de conexão com o motoristas-service
-MOTORISTAS_READ_TIMEOUT_MS	30000	Timeout de leitura de cada chamada ao motoristas-service
-
-Exporte as variáveis no terminal antes de iniciar o processo. O Spring Boot não carrega automaticamente um .env apenas por ele existir na raiz.
-
-Exemplo no PowerShell:
-
-$env:JWT_SECRET = '<segredo compartilhado do auth-service>'
-$env:MOTORISTAS_SERVICE_URL = 'http://localhost:8080'
-$env:FRONTEND_URL = 'http://localhost:5173'
-$env:MAX_UPLOAD_SIZE = '5MB'
-./mvnw.cmd spring-boot:run
-
-Docker
-
-Com o serviço de motoristas acessível pela porta 8080 do host, no Docker Desktop:
-
+```bash
 docker build -t newelog-manifesto-service .
-docker run --rm -p 8081:8081 -e JWT_SECRET="$JWT_SECRET" -e MOTORISTAS_SERVICE_URL=http://host.docker.internal:8080 newelog-manifesto-service
+docker run --rm -p 8081:8081 \
+  -e JWT_SECRET="$JWT_SECRET" \
+  -e MOTORISTAS_SERVICE_URL=http://host.docker.internal:8080 \
+  newelog-manifesto-service
+```
 
+No Linux com Docker Engine, acrescente `--add-host=host.docker.internal:host-gateway`. Dentro do container, `localhost` não aponta para o host nem para outros containers. Numa rede Docker compartilhada, use o nome do serviço na URL.
 
-Em Linux com Docker Engine, pode ser necessário acrescentar --add-host=host.docker.internal:host-gateway. Se ambos estiverem em uma rede Docker compartilhada, configure a URL usando o nome do serviço nessa rede. localhost dentro do container não aponta para outro container ou para o host.
+---
 
-Autenticação
+## 🔐 Variáveis de ambiente
 
-Todas as rotas, exceto /actuator/health e /actuator/info, exigem Authorization: Bearer <jwt> emitido pelo newelog-auth-service.
+| Variável | Padrão | Finalidade |
+| :--- | :--- | :--- |
+| `JWT_SECRET` | — (obrigatória) | Mesmo segredo do `newelog-auth-service`, mínimo de 32 caracteres |
+| `PORT` | `8081` | Porta HTTP |
+| `MOTORISTAS_SERVICE_URL` | `http://localhost:8080` | URL base do `motoristas-service`, sem `/api/motoristas` |
+| `FRONTEND_URL` | `http://localhost:5173` | Origem liberada no CORS |
+| `MAX_UPLOAD_SIZE` | `5MB` | Limite do multipart (arquivo e requisição) |
+| `MOTORISTAS_CONNECT_TIMEOUT_MS` | `5000` | Timeout de conexão com o `motoristas-service` |
+| `MOTORISTAS_READ_TIMEOUT_MS` | `30000` | Timeout de leitura de cada chamada ao `motoristas-service` |
 
-A configuração espera:
+---
 
-Assinatura HS256 com o segredo compartilhado JWT_SECRET.
-iss = newelog-auth-service.
-Claim perfil com o valor GESTOR ou OPERADOR.
+## 🔑 Autenticação
 
-Ambos os perfis podem importar manifestos, conforme as regras de autorização do serviço.
+Todas as rotas, exceto `/actuator/health` e `/actuator/info`, exigem `Authorization: Bearer <jwt>` emitido pelo `newelog-auth-service`:
 
-Sem token ou com token inválido/expirado, a resposta esperada é 401. Um usuário autenticado sem o perfil exigido recebe 403. O serviço repassa o cabeçalho Authorization às chamadas ao motoristas-service, que também valida o token. Por isso, os serviços precisam usar o mesmo segredo de assinatura.
+- assinatura HS256 com `JWT_SECRET`;
+- `iss = newelog-auth-service`;
+- claim `perfil` = `GESTOR` ou `OPERADOR`.
 
-API de upload
-Método	Rota	Finalidade
-POST	/manifestos/upload	Importar CSV via multipart/form-data
-GET	/actuator/health	Saúde da aplicação
-GET	/actuator/info	Informações expostas pelo Actuator
+Os dois perfis podem chamar as rotas de upload. O cabeçalho `Authorization` é repassado ao `motoristas-service`, que também valida o token e aplica as próprias regras de perfil. Sem token ou com token inválido: `401`. Perfil sem permissão: `403`.
 
-O arquivo deve ser enviado no campo file:
+---
 
+## 🔗 Endpoints
+
+| Método | Rota | Finalidade |
+| :--- | :--- | :--- |
+| POST | `/manifestos/upload` | Importa o manifesto CSV (`multipart/form-data`, campo `file`) |
+| POST | `/veiculos/upload` | Importa o CSV de veículos (`multipart/form-data`, campo `file`) |
+| GET | `/actuator/health` | Saúde da aplicação |
+| GET | `/actuator/info` | Informações do Actuator |
+
+```bash
 curl -X POST http://localhost:8081/manifestos/upload \
   -H "Authorization: Bearer $TOKEN" \
   -F "file=@manifesto.csv"
+```
 
+No navegador, ao usar `FormData`, deixe o próprio navegador definir o `Content-Type` e o boundary.
 
-No Windows PowerShell, use curl.exe se curl estiver associado a outro comando. Ao usar FormData no navegador, deixe que ele defina o Content-Type e o boundary.
+### Manifesto (`POST /manifestos/upload`)
 
-Exemplo ilustrativo de resposta:
+Exemplo de resposta:
 
+```json
 {
   "mensagem": "Processado: 2 manifestos (2 cadastrados/atualizados, 0 rejeitados)",
   "nomeArquivo": "manifesto.csv",
@@ -133,78 +156,112 @@ Exemplo ilustrativo de resposta:
   "totalRejeitados": 0,
   "novos": []
 }
+```
 
+- `totalProcessados`: linhas de dados consideradas no processamento.
+- `totalCadastrados`: linhas cujo cadastro ou atualização deu certo (não é a contagem de motoristas únicos).
+- `novos`: motoristas com `cadastroValidado = false` (cadastro pendente), sem repetir CPF dentro do upload. Pode incluir pendências de importações anteriores.
 
-totalProcessados contabiliza as linhas de dados consideradas pelo processamento, conforme as regras de leitura e validação implementadas. totalCadastrados conta linhas cujo cadastro ou atualização retornou sucesso, não motoristas únicos nem somente cadastros novos. novos lista motoristas com cadastroValidado=false, deduplicados por CPF dentro do upload; pode incluir pendências de importações anteriores.
+**Formato do CSV de manifesto.** O parser usa **posições fixas**, não nomes de colunas:
 
-Formato do CSV
+- extensão `.csv`, arquivo não vazio;
+- codificação ISO-8859-1 e separador `;`;
+- primeira linha ignorada (cabeçalho);
+- pelo menos 60 colunas por linha;
+- datas em `dd/MM/yyyy` e valores no formato brasileiro (`1.234,56`).
 
-O parser usa posições fixas, não nomes de colunas. Um CSV genérico com apenas nome, CPF e placa não atende ao contrato.
+| Coluna | Campo extraído |
+| :---: | :--- |
+| 1 | Identificador do manifesto |
+| 3 | Data |
+| 4 | Nome do motorista |
+| 5 | CPF do motorista |
+| 16 | Nome do agregado |
+| 17 | CPF/CNPJ do agregado |
+| 20 | Placa do veículo |
+| 39 | Valor do frete |
+| 52 | Total de despesas |
+| 57 | Saldo a pagar |
+| 60 | Status |
 
-Extensão .csv e arquivo não vazio.
-Codificação ISO-8859-1.
-Separador ;.
-Primeira linha ignorada como cabeçalho.
-Pelo menos 60 colunas por linha de dados.
-Data no formato dd/MM/yyyy.
-Valores monetários no formato brasileiro, por exemplo 1.234,56.
+O extrator tira a pontuação dos documentos e converte a data para `yyyy-MM-dd`. A validação de CPF/CNPJ e as regras de cadastro ficam no `motoristas-service`.
 
-Posições utilizadas, numeradas a partir de 1:
+### Veículos (`POST /veiculos/upload`)
 
-Coluna	Campo extraído
-1	Identificador do manifesto
-3	Data
-4	Nome do motorista
-5	CPF do motorista
-16	Nome do agregado
-17	CPF/CNPJ do agregado
-20	Placa do veículo
-39	Valor do frete
-52	Total de despesas
-57	Saldo a pagar
-60	Status
+Exemplo de resposta:
 
-O extrator remove a pontuação dos documentos e converte a data para yyyy-MM-dd. A validação de CPF/CNPJ e das demais regras de cadastro ocorre no serviço de motoristas.
+```json
+{
+  "mensagem": "...",
+  "nomeArquivo": "veiculos.csv",
+  "totalLinhas": 10,
+  "cadastrados": 6,
+  "atualizados": 2,
+  "rejeitados": 2,
+  "erros": [
+    { "linha": 4, "campo": "Placa", "motivo": "placa é obrigatória" }
+  ]
+}
+```
 
-Erros e limites de processamento
-Situação	Comportamento esperado
-Sem token, inválido ou expirado	401
-Perfil sem permissão	403
-Arquivo vazio, extensão inválida ou CSV ilegível	400
-Tamanho acima do limite multipart efetivo	413
-Validação do registro retorna 400	Conta uma rejeição e segue, conforme o fluxo implementado
-Cadastro retorna erro HTTP 4xx	Pode contar uma rejeição e seguir, conforme o status tratado pelo código
-Falha de rede ou erro 5xx da dependência	Pode interromper o upload com erro de integração
-Erro inesperado	500
+`erros` junta as linhas que não puderam ser lidas e as rejeitadas no cadastro, em ordem de linha.
 
-Os erros tratados pela aplicação usam um corpo com timestamp e mensagem. O status exato e a contabilização de linhas malformadas dependem das implementações de ApiExceptionHandler, do extrator CSV e do cliente de motoristas.
+**Formato do CSV de veículos.** Aqui as colunas são lidas **pelo nome do cabeçalho**:
 
-Não há transação única para todo o arquivo: registros já persistidos pelo serviço de motoristas permanecem salvos se uma chamada posterior falhar. A resposta não necessariamente traz o motivo detalhado de cada rejeição.
+- extensão `.csv`, arquivo não vazio, até **2 MB**;
+- codificação UTF-8 (com fallback para Windows-1252);
+- separador `;` ou `,` (detectado pela primeira linha);
+- colunas obrigatórias no cabeçalho: `Placa`, `Marca`, `Modelo`, `Cor`, `Tipo Veiculo`, `Agregado`. Se faltar alguma, o arquivo inteiro é recusado.
+- a coluna `Agregado` pode trazer o CPF/CNPJ junto do nome (ex.: `Fulano 123.456.789-00`), que é separado automaticamente.
 
-O processamento é síncrono, com chamadas HTTP por linha; arquivos grandes podem demorar.
+As regras por linha (placa válida, tipo de veículo existente, placa repetida) ficam no `motoristas-service`. Linhas inválidas não impedem o cadastro das válidas.
 
-Estrutura
+---
+
+## ⚠️ Erros e limites
+
+| Situação | Resposta |
+| :--- | :--- |
+| Sem token, inválido ou expirado | `401` |
+| Perfil sem permissão | `403` |
+| Arquivo vazio, extensão inválida ou CSV ilegível | `400` |
+| Arquivo acima do limite | `413` (multipart) ou `400` (limite de 2 MB dos veículos) |
+| Linha de manifesto recusada pela validação | Conta uma rejeição e segue |
+| Falha de rede ou erro 5xx do `motoristas-service` | Pode interromper o upload com erro de integração |
+| Erro inesperado | `500` |
+
+Os erros seguem o corpo `{ "timestamp": "...", "mensagem": "..." }`.
+
+Não existe uma transação única para o arquivo do manifesto: as linhas já gravadas no `motoristas-service` continuam salvas se uma chamada posterior falhar.
+
+---
+
+## 📂 Estrutura
+
+```text
 newelog-manifesto-service/
 ├── src/main/java/br/com/newelog/
 │   ├── config/          # Segurança JWT, CORS e RestTemplate
-│   ├── controller/      # Upload e tratamento de erros
+│   ├── controller/      # Uploads de manifesto e veículos, tratamento de erros
 │   ├── dto/             # Dados extraídos e respostas
-│   ├── service/         # Parser CSV, processamento e cliente de motoristas
-│   └── validation/      # Validação do arquivo
+│   ├── service/         # Extratores CSV, processamento e clientes do motoristas-service
+│   └── validation/      # Validação dos arquivos
 ├── src/main/resources/application.properties
-├── src/test/            # Testes do contexto, JWT e processamento
+├── src/test/            # Testes de JWT, extratores CSV e cliente de motoristas
 ├── .github/workflows/ci.yml
 ├── Dockerfile
-├── mvnw / mvnw.cmd
 └── pom.xml
+```
 
-Testes e build
+---
+
+## 🧪 Testes e build
+
+```bash
 ./mvnw test
 ./mvnw clean verify
+```
 
+No PowerShell, use `.\mvnw.cmd`. O GitHub Actions roda `clean verify` com Java 21 em pushes e pull requests para a `main`.
 
-No PowerShell, use ./mvnw.cmd. O workflow do GitHub Actions executa clean verify com Java 21 em pushes e pull requests para main.
-
-A cobertura real dos testes depende da suíte presente no repositório. Confirme os testes existentes antes de considerar validados o parser, a autenticação e a integração entre os serviços.
-
-Consulte o README de motoristas para regras de persistência, status e prevenção de viagens duplicadas.
+As regras de persistência, status e prevenção de viagens duplicadas estão no [README do motoristas-service](https://github.com/Koitech-Log/newelog-motoristas-service#readme).
