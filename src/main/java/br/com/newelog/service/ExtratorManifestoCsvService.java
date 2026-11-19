@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,9 @@ public class ExtratorManifestoCsvService {
     /** Mesmo tamanho da coluna viagem.destino no motoristas-service. */
     static final int DESTINO_TAMANHO_MAXIMO = 120;
     private static final String RETICENCIAS = "\u2026";
-    private static final DateTimeFormatter FORMATO_ENTRADA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATO_ENTRADA = DateTimeFormatter.ofPattern("dd/MM/uuuu")
+            // STRICT: 31/02 rejeita a linha em vez de virar 28/02 silenciosamente
+            .withResolverStyle(ResolverStyle.STRICT);
 
     /**
      * Uma linha malformada não derruba o arquivo: ela é descartada, registrada
