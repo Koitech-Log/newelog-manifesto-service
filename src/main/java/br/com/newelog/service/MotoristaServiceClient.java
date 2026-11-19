@@ -51,6 +51,7 @@ public class MotoristaServiceClient {
         corpo.put("valorFrete", manifesto.getvalorFrete());
         corpo.put("totalDespesas", manifesto.gettotalDespesas());
         corpo.put("saldoAPagar", manifesto.getsaldoAPagar());
+        corpo.put("destino", manifesto.getdestino());
 
         try {
             restTemplate.postForEntity(url, corpo, Void.class);
@@ -85,6 +86,7 @@ public class MotoristaServiceClient {
         corpo.put("status", manifesto.getstatus());
         corpo.put("valorFrete", manifesto.getvalorFrete());
         corpo.put("valorPedagio", manifesto.getvalorPedagio());
+        corpo.put("destino", manifesto.getdestino());
 
         try {
             return restTemplate.postForObject(url, corpo, MotoristaCadastradoDTO.class);
