@@ -52,6 +52,7 @@ public class MotoristaServiceClient {
         corpo.put("totalDespesas", manifesto.gettotalDespesas());
         corpo.put("saldoAPagar", manifesto.getsaldoAPagar());
         corpo.put("destino", manifesto.getdestino());
+        corpo.put("numeroManifesto", numeroManifesto(manifesto));
 
         try {
             restTemplate.postForEntity(url, corpo, Void.class);
@@ -87,6 +88,7 @@ public class MotoristaServiceClient {
         corpo.put("valorFrete", manifesto.getvalorFrete());
         corpo.put("valorPedagio", manifesto.getvalorPedagio());
         corpo.put("destino", manifesto.getdestino());
+        corpo.put("numeroManifesto", numeroManifesto(manifesto));
 
         try {
             return restTemplate.postForObject(url, corpo, MotoristaCadastradoDTO.class);
@@ -99,6 +101,12 @@ public class MotoristaServiceClient {
         } catch (ResourceAccessException e) {
             throw indisponivel(e);
         }
+    }
+
+    /** Coluna Manifesto do CSV; identifica a viagem no motoristas-service. Vazio vai como null. */
+    private static String numeroManifesto(ManifestoMapeadoDTO manifesto) {
+        String numero = manifesto.getmanifestoID();
+        return numero == null || numero.isBlank() ? null : numero.strip();
     }
 
     private MotoristasServiceException traduzir(RestClientResponseException e) {
