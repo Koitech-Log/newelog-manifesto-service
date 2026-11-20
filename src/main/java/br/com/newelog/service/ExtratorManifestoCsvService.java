@@ -148,13 +148,17 @@ public class ExtratorManifestoCsvService {
         return documento.replaceAll("[^0-9]", "");
     }
 
-    /** Vazio vale 0.0; valor preenchido mas ilegível rejeita a linha (NumberFormatException). */
+    /** Vazio vale 0.0; valor preenchido fora do formato brasileiro rejeita a linha. */
     private Double converterValor(String valor) {
         if (valor == null || valor.isBlank()) {
             return 0.0;
         }
 
-        return Double.parseDouble(valor.trim().replace(".", "").replace(",", "."));
+        String texto = valor.trim();
+        if (!texto.matches("(?:\\d+|\\d{1,3}(?:\\.\\d{3})+)(?:,\\d{1,2})?")) {
+            throw new IllegalArgumentException("Valor numérico em formato inválido");
+        }
+        return Double.parseDouble(texto.replace(".", "").replace(",", "."));
     }
 }
 
