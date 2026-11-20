@@ -13,6 +13,11 @@ public class ManifestoMapeadoDTO{
     private String status;
     private Double valorFrete;
     private BigDecimal valorPedagio;
+    // Opcional: null quando a coluna Destino do CSV veio vazia
+    private String destino;
+
+    public String getdestino() { return destino; }
+    public void setdestino(String destino) { this.destino = destino; }
 
     public BigDecimal getvalorPedagio() { return valorPedagio; }
     public void setvalorPedagio(BigDecimal valorPedagio) { this.valorPedagio = valorPedagio; }

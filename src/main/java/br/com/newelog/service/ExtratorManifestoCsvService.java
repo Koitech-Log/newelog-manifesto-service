@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +25,12 @@ public class ExtratorManifestoCsvService {
     private static final Logger log = LoggerFactory.getLogger(ExtratorManifestoCsvService.class);
 
     private static final int COLUNAS_MINIMAS = 60;
-    private static final DateTimeFormatter FORMATO_ENTRADA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    /** Mesmo tamanho da coluna viagem.destino no motoristas-service. */
+    static final int DESTINO_TAMANHO_MAXIMO = 120;
+    private static final String RETICENCIAS = "\u2026";
+    private static final DateTimeFormatter FORMATO_ENTRADA = DateTimeFormatter.ofPattern("dd/MM/uuuu")
+            // STRICT: 31/02 rejeita a linha em vez de virar 28/02 silenciosamente
+            .withResolverStyle(ResolverStyle.STRICT);
 
     /**
      * Uma linha malformada não derruba o arquivo: ela é descartada, registrada
@@ -76,6 +82,7 @@ public class ExtratorManifestoCsvService {
         dto.setnomeAgregado(linha[15]);
         dto.setcpfCnpjAgregado(limparDocumento(linha[16]));
         dto.setplacaVeiculo(linha[19]);
+        dto.setdestino(resumirDestino(linha[23]));
         dto.setstatus(linha[59]);
 
         dto.setvalorFrete(converterValor(linha[38]));
@@ -105,6 +112,23 @@ public class ExtratorManifestoCsvService {
             throw new IllegalArgumentException("Pedágio excede o limite permitido");
         }
         return pedagio.setScale(2);
+    }
+
+    /**
+     * Destino da própria linha (coluna 23). Vazio vira null: o motoristas-service
+     * grava "Não informado". Acima de 120 caracteres o texto é resumido em vez de
+     * rejeitar a linha, para não perder a viagem nem o frete (D15): corta na
+     * última ", " que caiba e termina com "…"; sem ", " que caiba, 119 + "…".
+     */
+    static String resumirDestino(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        String destino = valor.strip();
+        if (destino.length() <= DESTINO_TAMANHO_MAXIMO) return destino;
+
+        int limite = DESTINO_TAMANHO_MAXIMO - RETICENCIAS.length();
+        int corte = destino.lastIndexOf(", ", limite);
+        if (corte <= 0) corte = limite;
+        return destino.substring(0, corte).strip() + RETICENCIAS;
     }
 
     private boolean linhaEmBranco(String[] linha) {
